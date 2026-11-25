@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local File Finder &amp; Copier</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Local File Finder &amp; Copier</h1>
+        <p class="subtitle">Cari, filter berdasarkan nama &amp; tanggal, preview isi file, lalu salin atau pindahkan ke folder tujuan.</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="serverBadge" class="badge badge-neutral">Memeriksa server...</span>
+      </div>
+    </header>
+
+    <section class="card presets-card">
+      <div class="card-header-inline">
+        <h2>Preset Filter Cepat</h2>
+        <div class="preset-save-group">
+          <input id="presetNameInput" type="text" placeholder="Nama preset baru..." />
+          <button id="savePresetBtn" class="btn btn-secondary" type="button">Simpan Preset</button>
+        </div>
+      </div>
+      <div id="presetsList" class="presets-list"></div>
+    </section>
+
+    <section class="card filter-card">
+      <h2>1. Lokasi &amp; Kriteria Filter</h2>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="sourceDir">Folder Sumber</label>
+          <div class="input-with-btn">
+            <input id="sourceDir" type="text" placeholder="Contoh: C:\Users\nama\Downloads" />
+            <button id="browseSourceBtn" class="btn btn-outline" type="button">Browse</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="destDir">Folder Tujuan</label>
+          <div class="input-with-btn">
+            <input id="destDir" type="text" placeholder="Contoh: D:\tes5" />
+            <button id="browseDestBtn" class="btn btn-outline" type="button">Browse</button>
+            <button id="openDestBtn" class="btn btn-outline" type="button" title="Buka di File Explorer">Buka</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label for="keywords">Kata Kunci Nama File <span class="hint">(pisahkan koma)</span></label>
+          <input id="keywords" type="text" placeholder="Contoh: Notulensi, SIGMA" />
+        </div>
+
+        <div class="field">
+          <label for="extensions">Filter Ekstensi <span class="hint">(opsional)</span></label>
+          <input id="extensions" type="text" placeholder="Contoh: .pdf, .docx, .txt" />
+        </div>
+
+        <div class="field checkbox-stack">
+          <label class="checkbox-label">
+            <input id="recursive" type="checkbox" />
+            <span>Sertakan subfolder (rekursif)</span>
+          </label>
+          <label class="checkbox-label">
+            <input id="useRegex" type="checkbox" />
+            <span>Gunakan Regex pada kata kunci</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="grid-3 date-row">
+        <div class="field">
+          <label for="dateField">Basis Tanggal</label>
+          <select id="dateField">
+            <option value="either">Dibuat ATAU Diubah (Direkomendasikan)</option>
+            <option value="created">Tanggal Dibuat (CreationTime)</option>
+            <option value="modified">Tanggal Diubah (LastWriteTime)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="dateMode">Mode Filter Tanggal</label>
+          <select id="dateMode">
+            <option value="none">Semua Tanggal</option>
+            <option value="specific">Tanggal Tertentu (Multi-tanggal)</option>
+            <option value="range">Rentang Tanggal (Dari – Sampai)</option>
+          </select>
+        </div>
+
+        <div id="specificDateGroup" class="field hidden">
+          <label for="specificDates">Daftar Tanggal <span class="hint">(YYYY-MM-DD, pisah koma)</span></label>
+          <div class="input-with-btn">
+            <input id="specificDates" type="text" placeholder="2026-11-17, 2026-11-25" />
+            <input id="datePickerHelper" type="date" title="Tambah tanggal ke daftar" />
+          </div>
+        </div>
+
+        <div id="rangeDateGroup" class="field hidden">
+          <label>Rentang Tanggal</label>
+          <div class="range-inputs">
+            <input id="dateFrom" type="date" />
+            <span>s/d</span>
+            <input id="dateTo" type="date" />
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button id="scanBtn" class="btn btn-primary" type="button">Cari &amp; Tampilkan File</button>
+        <button id="resetBtn" class="btn btn-ghost" type="button">Reset Filter</button>
+      </div>
+    </section>
+
+    <section class="workspace-split">
+      <div class="card results-card">
+        <div class="results-toolbar">
+          <div>
+            <h2>2. Hasil Pencarian</h2>
+            <p id="scanSummary" class="subtitle">Belum ada pencarian dijalankan.</p>
+          </div>
+          <div class="results-controls">
+            <input id="quickSearch" type="search" placeholder="Saring cepat di tabel..." />
+            <button id="selectAllBtn" class="btn btn-outline btn-sm" type="button">Pilih Semua</button>
+            <button id="clearSelectBtn" class="btn btn-outline btn-sm" type="button">Batal Pilih</button>
+          </div>
+        </div>
+
+        <div id="warningsBox" class="warnings-box hidden"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-check"><input id="masterCheck" type="checkbox" /></th>
+                <th class="sortable" data-sort="name">Nama File</th>
+                <th class="sortable" data-sort="size">Ukuran</th>
+                <th class="sortable" data-sort="created_at">Dibuat</th>
+                <th class="sortable" data-sort="modified_at">Diubah</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr>
+                <td colspan="6" class="empty-state">Klik <strong>Cari &amp; Tampilkan File</strong> untuk memulai.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="transfer-bar">
+          <div class="transfer-options">
+            <label>
+              <span>Mode:</span>
+              <select id="transferMode">
+                <option value="copy">Salin (Copy)</option>
+                <option value="move">Pindah (Move)</option>
+              </select>
+            </label>
+            <label>
+              <span>Jika nama sama:</span>
+              <select id="conflictPolicy">
+                <option value="skip">Lewati (Skip)</option>
+                <option value="rename">Ganti Nama Otomatis</option>
+                <option value="overwrite">Timpa (Overwrite)</option>
+              </select>
+            </label>
+          </div>
+          <button id="transferBtn" class="btn btn-success" type="button" disabled>
+            Proses File Terpilih (<span id="selectedCount">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <aside class="card preview-card">
+        <div class="preview-header">
+          <h2>3. Preview File</h2>
+          <span id="previewMeta" class="subtitle">Klik tombol "Preview" pada baris file.</span>
+        </div>
+        <div id="previewContainer" class="preview-container">
+          <p class="empty-state">Mendukung preview file teks (`.txt`, `.csv`, `.json`, `.md`), dokumen `.docx`, gambar, dan `.pdf`.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card log-card">
+      <div class="card-header-inline">
+        <h2>Riwayat Aktivitas &amp; Hasil Salin</h2>
+        <button id="clearLogBtn" class="btn btn-ghost btn-sm" type="button">Bersihkan Log</button>
+      </div>
+      <div id="activityLog" class="activity-log">
+        <p class="empty-state">Belum ada aktivitas penyalinan.</p>
+      </div>
+    </section>
+  </div>
+
+  <div id="browseModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="browseModalTitle">
+    <div class="modal-backdrop" id="browseBackdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="browseModalTitle">Pilih Folder</h3>
+        <button id="closeBrowseBtn" class="btn btn-ghost btn-sm" type="button">Tutup</button>
+      </div>
+      <div class="browse-path-bar">
+        <button id="browseUpBtn" class="btn btn-outline btn-sm" type="button">Naik</button>
+        <input id="browseCurrentPath" type="text" readonly />
+      </div>
+      <div id="browseList" class="browse-list"></div>
+      <div class="modal-footer">
+        <button id="chooseFolderBtn" class="btn btn-primary" type="button">Gunakan Folder Ini</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
