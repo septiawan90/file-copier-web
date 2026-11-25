@@ -545,6 +545,12 @@ class AppHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def end_headers(self) -> None:
+        # Make the browser revalidate static files so updates show up right away.
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def log_message(self, format: str, *args) -> None:
         # Keep console output concise.
         return

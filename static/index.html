@@ -4,7 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Local File Finder &amp; Copier</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <script>
+    // Apply the saved theme (or the system preference) before the page paints.
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem("theme"); } catch (e) {}
+      if (theme !== "light" && theme !== "dark") {
+        theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <!-- Bump ?v= when styles.css or app.js change so browsers drop old cached copies. -->
+  <link rel="stylesheet" href="/styles.css?v=2" />
 </head>
 <body>
   <div class="app-shell">
@@ -15,6 +27,7 @@
       </div>
       <div class="topbar-actions">
         <span id="serverBadge" class="badge badge-neutral">Memeriksa server...</span>
+        <button id="themeToggle" class="btn btn-outline btn-sm theme-toggle" type="button"></button>
       </div>
     </header>
 
@@ -217,6 +230,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=2"></script>
 </body>
 </html>

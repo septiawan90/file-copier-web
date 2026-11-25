@@ -58,6 +58,29 @@ const els = {
   chooseFolderBtn: document.getElementById("chooseFolderBtn"),
 };
 
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function renderThemeToggle() {
+  const btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  const isDark = currentTheme() === "dark";
+  btn.textContent = isDark ? "☀️ Terang" : "🌙 Gelap";
+  btn.title = isDark ? "Ganti ke tema terang" : "Ganti ke tema gelap";
+}
+
+function toggleTheme() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("theme", next);
+  } catch (err) {
+    // Storage unavailable: the choice just won't be remembered.
+  }
+  renderThemeToggle();
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -584,6 +607,8 @@ function bindEvents() {
 }
 
 async function init() {
+  renderThemeToggle();
+  document.getElementById("themeToggle")?.addEventListener("click", toggleTheme);
   bindEvents();
   syncDateModeUI();
   try {
